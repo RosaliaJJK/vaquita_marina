@@ -1,7 +1,6 @@
 // routes/auth.js
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
 const db = require('../db'); 
 
 // GET vistas
@@ -38,8 +37,11 @@ router.post('/register', async (req, res) => {
       return res.redirect('/auth/register');
     }
 
-    const hash = await bcrypt.hash(contrasena, 10);
-    await db.query('INSERT INTO usuarios (nombre_usuario, contrasena_hash) VALUES (?, ?)', [usuario, hash]);
+    // guardamos la contraseña en texto (solo para práctica)
+    await db.query(
+      'INSERT INTO usuarios (nombre_usuario, contrasena_hash) VALUES (?, ?)', 
+      [usuario, contrasena]
+    );
 
     req.session.success_message = 'Registro exitoso. Inicia sesión';
     return res.redirect('/auth/login');
@@ -55,7 +57,11 @@ router.post('/login', async (req, res) => {
   try {
     const { usuario, contrasena } = req.body;
 
-    const [rows] = await db.query('SELECT * FROM usuarios WHERE nombre_usuario = ?', [usuario]);
+    const [rows] = await db.query(
+      'SELECT * FROM usuarios WHERE nombre_usuario = ?',
+      [usuario]
+    );
+
     if (rows.length === 0) {
       req.session.error_message = 'Usuario no existe';
       return res.redirect('/auth/login');
@@ -63,8 +69,8 @@ router.post('/login', async (req, res) => {
 
     const user = rows[0];
 
-    const ok = await bcrypt.compare(contrasena, user.contrasena_hash);
-    if (!ok) {
+    // comparamos texto simple
+    if (contrasena !== user.contrasena_hash) {
       req.session.error_message = 'Contraseña incorrecta';
       return res.redirect('/auth/login');
     }

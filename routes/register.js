@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const bcrypt = require('bcryptjs');
 const db = require("../db");
 
 // Página registro
@@ -13,29 +12,27 @@ router.post("/", async (req,res)=>{
 
     const {usuario, contrasena} = req.body;
 
-    // Validación de la contraseña igual que tu PHP
-    const regExp = /^(?=.*[A-Za-z])(?=.*\d)?(?=.*[!@#$%^&*]).{6,}$/;
-
-    if(!regExp.test(contrasena)){
-        return res.send("La contraseña debe tener 6 caracteres y un símbolo");
+    // Validación simple (opcional)
+    if(contrasena.length < 4){
+        return res.send("La contraseña debe tener mínimo 4 caracteres");
     }
 
-    // Verificar que el usuario no exista
-    const [rows] = await db.query("SELECT * FROM usuarios WHERE nombre_usuario=?",[usuario]);
+    // Verificar si ya existe
+    const [rows] = await db.query(
+        "SELECT * FROM usuarios WHERE nombre_usuario=?",
+        [usuario]
+    );
 
     if(rows.length > 0){
         return res.send("El nombre ya está registrado");
     }
 
-    // Crear hash
-    const hash = await bcrypt.hash(contrasena, 10);
-
+    // ← GUARDAMOS LA CONTRASEÑA TAL CUAL SIN BCRYPT
     await db.query(
-        "INSERT INTO usuarios(email,password) VALUES(?,?)",
-        [usuario, hash]
+        "INSERT INTO usuarios (nombre_usuario, contrasena_hash) VALUES (?, ?)",
+        [usuario, contrasena]
     )
 
-    // Listo
     res.redirect("/login");
 });
 
